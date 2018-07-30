@@ -19,7 +19,7 @@ var (
 	// was not a valid numeric type.
 	ErrBadJSONAPIID = errors.New(
 		"id should be either string, int(8,16,32,64) or uint(8,16,32,64)")
-	// ErrExpectedSlice is returned when a variable or argument was expected to
+	// ErrExpectedSlice is returned when a variable or arugment was expected to
 	// be a slice of *Structs; MarshalMany will return this error when its
 	// interface{} argument is invalid.
 	ErrExpectedSlice = errors.New("models should be a slice of struct pointers")
@@ -74,44 +74,25 @@ func MarshalPayload(w io.Writer, models interface{}) error {
 	return nil
 }
 
+// MarshalPayloadPaged does the same as MarshalPayload except it takes a "paged" argument
+// that is appended to the meta information with the key "page"
+func MarshalPayloadPaged(w io.Writer, models interface{}, page interface{}) error {
+	payload, err := marshal(models, page)
+	if err != nil {
+		return err
+	}
+
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Marshal does the same as MarshalPayload except it just returns the payload
 // and doesn't write out results. Useful if you use your own JSON rendering
 // library.
 func Marshal(models interface{}) (Payloader, error) {
-	switch vals := reflect.ValueOf(models); vals.Kind() {
-	case reflect.Slice:
-		m, err := convertToSliceInterface(&models)
-		if err != nil {
-			return nil, err
-		}
-
-		payload, err := marshalMany(m)
-		if err != nil {
-			return nil, err
-		}
-
-		if linkableModels, isLinkable := models.(Linkable); isLinkable {
-			jl := linkableModels.JSONAPILinks()
-			if er := jl.validate(); er != nil {
-				return nil, er
-			}
-			payload.Links = linkableModels.JSONAPILinks()
-		}
-
-		if metableModels, ok := models.(Metable); ok {
-			payload.Meta = metableModels.JSONAPIMeta()
-		}
-
-		return payload, nil
-	case reflect.Ptr:
-		// Check that the pointer was to a struct
-		if reflect.Indirect(vals).Kind() != reflect.Struct {
-			return nil, ErrUnexpectedType
-		}
-		return marshalOne(models)
-	default:
-		return nil, ErrUnexpectedType
-	}
+	return marshal(models)
 }
 
 // MarshalPayloadWithoutIncluded writes a jsonapi response with one or many
@@ -170,6 +151,51 @@ func marshalMany(models []interface{}) (*ManyPayload, error) {
 	payload.Included = nodeMapValues(&included)
 
 	return payload, nil
+}
+
+func marshal(models interface{}, page ...interface{}) (Payloader, error) {
+	switch vals := reflect.ValueOf(models); vals.Kind() {
+	case reflect.Slice:
+		m, err := convertToSliceInterface(&models)
+		if err != nil {
+			return nil, err
+		}
+
+		payload, err := marshalMany(m)
+		if err != nil {
+			return nil, err
+		}
+
+		if linkableModels, isLinkable := models.(Linkable); isLinkable {
+			jl := linkableModels.JSONAPILinks()
+			if er := jl.validate(); er != nil {
+				return nil, er
+			}
+			payload.Links = linkableModels.JSONAPILinks()
+		}
+
+		if metableModels, ok := models.(Metable); ok {
+			payload.Meta = metableModels.JSONAPIMeta()
+		}
+
+		if len(page) > 0 {
+			if payload.Meta == nil {
+				payload.Meta = &Meta{"page": page}
+			} else {
+				(*payload.Meta)["page"] = page
+			}
+		}
+
+		return payload, nil
+	case reflect.Ptr:
+		// Check that the pointer was to a struct
+		if reflect.Indirect(vals).Kind() != reflect.Struct {
+			return nil, ErrUnexpectedType
+		}
+		return marshalOne(models)
+	default:
+		return nil, ErrUnexpectedType
+	}
 }
 
 // MarshalOnePayloadEmbedded - This method not meant to for use in
