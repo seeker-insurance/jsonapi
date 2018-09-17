@@ -255,7 +255,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		// handles embedded structs and pointers to embedded structs
-		if isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
+		if shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
 			var embModel interface{}
 			if fieldType.Type.Kind() == reflect.Ptr {
 				if fieldValue.IsNil() {
@@ -287,7 +287,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		// skip embedded because it was handled in a previous loop
-		if isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
+		if shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
 			continue
 		}
 
@@ -618,4 +618,8 @@ func isEmbeddedStructPtr(sField reflect.StructField) bool {
 
 func shouldIgnoreField(japiTag string) bool {
 	return strings.HasPrefix(japiTag, annotationIgnore)
+}
+
+func shouldTreatEmbeded(japiTag string) bool {
+	return strings.HasPrefix(japiTag, annotationEmbed)
 }

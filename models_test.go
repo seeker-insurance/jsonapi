@@ -76,6 +76,11 @@ type Blog struct {
 	CurrentPostID int       `jsonapi:"attr,current_post_id"`
 	CreatedAt     time.Time `jsonapi:"attr,created_at"`
 	ViewCount     int       `jsonapi:"attr,view_count"`
+	R             *blogR    `jsonapi:"embed"`
+}
+
+type blogR struct {
+	Comment *Comment `jsonapi:"relation,comment"`
 }
 
 func (b *Blog) JSONAPILinks() *Links {

@@ -682,6 +682,46 @@ func TestRelations(t *testing.T) {
 	}
 }
 
+func TestForcedEmbed(t *testing.T) {
+	testModel := &Blog{
+		ID:        5,
+		Title:     "Title 1",
+		CreatedAt: time.Now(),
+		R: &blogR{
+			Comment: &Comment{
+				ID: 99,
+				Body: "eyecue",
+			},
+		},
+	}
+
+	out := bytes.NewBuffer(nil)
+	if err := MarshalPayload(out, testModel); err != nil {
+		t.Fatal(err)
+	}
+
+	resp := new(OnePayload)
+
+	if err := json.NewDecoder(out).Decode(resp); err != nil {
+		t.Fatal(err)
+	}
+
+	data := resp.Data
+
+	if rel, ok := data.Relationships["comment"]; ok {
+		relMap := rel.(map[string]interface{})
+		if relMap["data"].(map[string]interface{})["id"] != "99" {
+			t.Fatalf("expected comment relation to have id 99, got %v", relMap["id"])
+		}
+	} else {
+		t.Fatalf("expected comment relation")
+	}
+
+	if resp.Included[0].Attributes["body"] != "eyecue" {
+		t.Fatalf("included arr should be eyecue, got %s", resp.Included[0].Attributes["body"])
+	}
+}
+
 func TestNoRelations(t *testing.T) {
 	testModel := &Blog{ID: 1, Title: "Title 1", CreatedAt: time.Now()}
 
