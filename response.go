@@ -231,8 +231,10 @@ func MarshalOnePayloadEmbedded(w io.Writer, model interface{}) error {
 // visitModelNode converts models to jsonapi payloads
 // it handles the deepest models first. (i.e.) embedded models
 // this is so that upper-level attributes can overwrite lower-level attributes
-func visitModelNode(model interface{}, included *map[string]*Node, sideload bool) (*Node, error) {
+func visitModelNode(model interface{}, included *map[string]*Node, sideload bool, noEmbed ...bool) (*Node, error) {
 	node := new(Node)
+
+	noEmb := (len(noEmbed) > 0) && noEmbed[0]
 
 	var er error
 	value := reflect.ValueOf(model)
@@ -255,7 +257,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		// handles embedded structs and pointers to embedded structs
-		if shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
+		if !noEmb && (shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType)) {
 			var embModel interface{}
 			if fieldType.Type.Kind() == reflect.Ptr {
 				if fieldValue.IsNil() {
@@ -497,6 +499,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 					fieldValue.Interface(),
 					included,
 					sideload,
+					true,
 				)
 				if err != nil {
 					er = err
