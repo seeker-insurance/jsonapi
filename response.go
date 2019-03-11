@@ -231,10 +231,13 @@ func MarshalOnePayloadEmbedded(w io.Writer, model interface{}) error {
 // visitModelNode converts models to jsonapi payloads
 // it handles the deepest models first. (i.e.) embedded models
 // this is so that upper-level attributes can overwrite lower-level attributes
-func visitModelNode(model interface{}, included *map[string]*Node, sideload bool, noEmbed ...bool) (*Node, error) {
+func visitModelNode(model interface{}, included *map[string]*Node, sideload bool, embLevel ...int) (*Node, error) {
 	node := new(Node)
 
-	noEmb := (len(noEmbed) > 0) && noEmbed[0]
+	embLvl := 0
+	if len(embLevel) > 0 {
+		embLvl = embLevel[0]
+	}
 
 	var er error
 	value := reflect.ValueOf(model)
@@ -257,7 +260,9 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		// handles embedded structs and pointers to embedded structs
-		if !noEmb && (shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType)) {
+		if (shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType)) {
+			embLvl = embLvl+1
+
 			var embModel interface{}
 			if fieldType.Type.Kind() == reflect.Ptr {
 				if fieldValue.IsNil() {
@@ -268,7 +273,11 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 				embModel = fieldValue.Addr().Interface()
 			}
 
-			embNode, err := visitModelNode(embModel, included, sideload)
+			if embLvl > 3 {
+				continue
+			}
+
+			embNode, err := visitModelNode(embModel, included, sideload, embLvl)
 			if err != nil {
 				er = err
 				break
@@ -463,6 +472,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 					fieldValue,
 					included,
 					sideload,
+					embLvl,
 				)
 				if err != nil {
 					er = err
@@ -499,7 +509,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 					fieldValue.Interface(),
 					included,
 					sideload,
-					true,
+					embLvl,
 				)
 				if err != nil {
 					er = err
@@ -555,13 +565,13 @@ func toShallowNode(node *Node) *Node {
 }
 
 func visitModelNodeRelationships(models reflect.Value, included *map[string]*Node,
-	sideload bool) (*RelationshipManyNode, error) {
+	sideload bool, embLevel int) (*RelationshipManyNode, error) {
 	nodes := []*Node{}
 
 	for i := 0; i < models.Len(); i++ {
 		n := models.Index(i).Interface()
 
-		node, err := visitModelNode(n, included, sideload)
+		node, err := visitModelNode(n, included, sideload, embLevel)
 		if err != nil {
 			return nil, err
 		}
