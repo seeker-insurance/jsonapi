@@ -298,7 +298,7 @@ func visitModelNode(model interface{}, included *map[string]*Node, sideload bool
 		}
 
 		// skip embedded because it was handled in a previous loop
-		if shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
+		if embLvl > 3 || shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) || isEmbeddedStructPtr(fieldType) {
 			continue
 		}
 
