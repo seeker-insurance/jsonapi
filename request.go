@@ -147,8 +147,13 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 			continue
 		}
 
+		// TODO: support embed tags
+		if shouldTreatEmbeded(tag){
+			continue
+		}
+
 		// handles embedded structs
-		if shouldTreatEmbeded(tag) || isEmbeddedStruct(fieldType) {
+		if isEmbeddedStruct(fieldType) {
 			embeddeds = append(embeddeds,
 				&embedded{
 					model:       reflect.ValueOf(fieldValue.Addr().Interface()),
