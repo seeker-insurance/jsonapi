@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/eyecuelab/kit/web/pagination"
 	"io"
 	"reflect"
 	"strconv"
@@ -76,7 +77,7 @@ func MarshalPayload(w io.Writer, models interface{}) error {
 
 // MarshalPayloadPaged does the same as MarshalPayload except it takes a "paged" argument
 // that is appended to the meta information with the key "page"
-func MarshalPayloadPaged(w io.Writer, models interface{}, page interface{}) error {
+func MarshalPayloadPaged(w io.Writer, models interface{}, page *pagination.Pagination) error {
 	payload, err := marshal(models, page)
 	if err != nil {
 		return err
@@ -153,7 +154,7 @@ func marshalMany(models []interface{}) (*ManyPayload, error) {
 	return payload, nil
 }
 
-func marshal(models interface{}, page ...interface{}) (Payloader, error) {
+func marshal(models interface{}, page ...*pagination.Pagination) (Payloader, error) {
 	switch vals := reflect.ValueOf(models); vals.Kind() {
 	case reflect.Slice:
 		m, err := convertToSliceInterface(&models)
@@ -179,10 +180,9 @@ func marshal(models interface{}, page ...interface{}) (Payloader, error) {
 		}
 
 		if len(page) > 0 {
-			if payload.Meta == nil {
-				payload.Meta = &Meta{"page": page}
-			} else {
-				(*payload.Meta)["page"] = page
+			pg := page[0]
+			for k, v := range pg.Links() {
+				(*payload.Links)[k] = v
 			}
 		}
 
