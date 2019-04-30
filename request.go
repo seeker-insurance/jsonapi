@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/eyecuelab/kit/db/null"
 	"io"
 	"reflect"
 	"strconv"
@@ -594,6 +595,12 @@ func handleAttributeUnmarshal(data *Node, args []string, fieldType reflect.Struc
 		case reflect.Float64:
 			n := floatValue
 			numericValue = reflect.ValueOf(&n)
+		case reflect.Struct:
+			var check null.Int
+			if fieldType.Type == reflect.TypeOf(check) {
+				n := int64(floatValue)
+				numericValue = reflect.ValueOf(null.NewInt(n, true))
+			}
 		default:
 			return ErrUnknownFieldNumberType
 		}
