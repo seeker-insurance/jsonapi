@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/eyecuelab/kit/web/pagination"
+	"github.com/seeker-insurance/kit/web/pagination"
 	"io"
 	"reflect"
 	"strconv"

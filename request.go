@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/eyecuelab/kit/db/null"
+	"github.com/seeker-insurance/kit/db/null"
 	"io"
 	"reflect"
 	"strconv"
