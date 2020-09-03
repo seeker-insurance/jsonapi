@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/seeker-insurance/kit/db/null"
 	"io"
 	"reflect"
 	"strconv"
@@ -149,7 +148,7 @@ func unmarshalNode(data *Node, model reflect.Value, included *map[string]*Node) 
 		}
 
 		// TODO: support embed tags
-		if shouldTreatEmbeded(tag){
+		if shouldTreatEmbeded(tag) {
 			continue
 		}
 
@@ -595,12 +594,6 @@ func handleAttributeUnmarshal(data *Node, args []string, fieldType reflect.Struc
 		case reflect.Float64:
 			n := floatValue
 			numericValue = reflect.ValueOf(&n)
-		case reflect.Struct:
-			var check null.Int
-			if fieldType.Type == reflect.TypeOf(check) {
-				n := int64(floatValue)
-				numericValue = reflect.ValueOf(null.NewInt(n, true))
-			}
 		default:
 			return ErrUnknownFieldNumberType
 		}
